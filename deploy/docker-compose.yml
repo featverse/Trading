@@ -1,0 +1,28 @@
+# Bot Freqtrade en DRY-RUN (simulation) pour une stratégie validée par le pipeline.
+#
+# 1. Copier research/strategies/<nom>/freqtrade/*.py         -> deploy/user_data/strategies/
+#    et      research/strategies/<nom>/freqtrade/config.dryrun.json -> deploy/user_data/config.json
+# 2. cp deploy/.env.example deploy/.env  puis remplir (chmod 600 deploy/.env)
+# 3. docker compose -f deploy/docker-compose.yml up -d
+#
+# À VÉRIFIER : épingler l'image sur une version datée (ex. freqtradeorg/freqtrade:2026.x)
+# plutôt que "stable", après test, pour éviter une mise à jour silencieuse.
+services:
+  freqtrade:
+    image: freqtradeorg/freqtrade:stable
+    container_name: sentinelle-freqtrade
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./user_data:/freqtrade/user_data
+    # API accessible UNIQUEMENT depuis le serveur lui-même (tunnel SSH ou backend local).
+    ports:
+      - "127.0.0.1:8080:8080"
+    command: >
+      trade
+      --logfile /freqtrade/user_data/logs/freqtrade.log
+      --db-url sqlite:////freqtrade/user_data/tradesv3.dryrun.sqlite
+      --config /freqtrade/user_data/config.json
+    read_only: false
+    security_opt:
+      - no-new-privileges:true

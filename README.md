@@ -17,11 +17,30 @@ Conception complète : [`docs/CONCEPTION_APP_TRADING_IA.md`](docs/CONCEPTION_APP
 | `sentinelle/risk/guard.py` | Gardien indépendant : coupe-circuit journalier, kill switch, redémarrage manuel |
 | `sentinelle/risk/tiers.py` | Paliers FCFA (P0 → P3) et mise à l'abri des gains |
 
+## Phase 2 : l'équipe d'agents de recherche
+
+| Module | Rôle |
+|---|---|
+| `sentinelle/strategy/spec.py` | Langage de stratégie déclaratif : l'IA produit des **données validées, jamais du code** |
+| `sentinelle/strategy/indicators.py` | Indicateurs « passé uniquement » partagés par le backtest et le bot |
+| `sentinelle/agents/roles.py` | Agents Claude : **Hypothesis**, **Critic** hostile, **Rédacteur** (aucun outil, aucune clé) |
+| `sentinelle/agents/pipeline.py` | **Orchestrateur** séquentiel : Hypothèse → Gate 1 → Gate 2 → Gate 3 → Risk → décision |
+| `sentinelle/agents/ledger.py` | Journal immuable chaîné par hash : N essais global, rejets conservés |
+| `sentinelle/strategy/freqtrade_export.py` | Génère le bot Freqtrade + config **DRY-RUN** pour une stratégie validée |
+| `deploy/` | Docker Compose du bot en simulation, `.env.example` (secrets hors Git) |
+
+Décisions possibles : `REJECTED` ou `PAPER_TRADING_ONLY`. **Le pipeline ne peut jamais engager d'argent réel.**
+
+```bash
+.venv/bin/python scripts/run_research.py --demo          # sans clé API
+ANTHROPIC_API_KEY=... .venv/bin/python scripts/run_research.py --ideas 3
+```
+
 ## Lancer
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
-.venv/bin/python -m pytest -q                                # 54 tests
+.venv/bin/python -m pytest -q                                # 85 tests
 .venv/bin/python scripts/validate_strategy.py                # pipeline complet sur BTCUSDT daily
 .venv/bin/python scripts/validate_strategy.py --synthetic    # hors ligne
 ```

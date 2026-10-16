@@ -54,14 +54,26 @@ def deflated_sharpe_ratio(
     skewness: float,
     kurtosis: float,
     threshold: float = DSR_THRESHOLD,
+    n_trials: int | None = None,
 ) -> DSRResult:
-    """`kurtosis` est la kurtosis brute (3 pour une loi normale)."""
-    n_trials = len(trial_sharpes)
-    if n_trials < 1:
+    """`kurtosis` est la kurtosis brute (3 pour une loi normale).
+
+    `n_trials` : nombre TOTAL d'essais du programme de recherche (journal), qui peut
+    dépasser le nombre de Sharpe fournis ; la variance est estimée sur `trial_sharpes`.
+    """
+    if len(trial_sharpes) < 1:
         raise ValueError("Fournir les Sharpe de TOUS les essais (au moins 1).")
+    if n_trials is None:
+        n_trials = len(trial_sharpes)
+    if n_trials < len(trial_sharpes):
+        raise ValueError("n_trials ne peut pas être inférieur au nombre d'essais fournis.")
     if n_obs < 2:
         raise ValueError("n_obs doit être >= 2.")
-    var = float(np.var(trial_sharpes, ddof=1)) if n_trials > 1 else 0.0
+    var = float(np.var(trial_sharpes, ddof=1)) if len(trial_sharpes) > 1 else 0.0
+    if n_trials > 1 and var == 0.0:
+        # Un seul Sharpe disponible mais plusieurs essais au total : variance inconnue,
+        # on prend une borne prudente (bruit pur de même longueur).
+        var = 1.0 / max(n_obs - 1, 1)
     sr0 = expected_max_sharpe(n_trials, var)
     denom = 1 - skewness * sharpe + ((kurtosis - 1) / 4) * sharpe**2
     if denom <= 0:

@@ -245,5 +245,9 @@ Calendrier : construction + paper trading ≈ 3 mois. Pendant ce temps, tes appo
 
 ### Avancement
 - ✅ **Phase 1 livrée** (`/home/user/sentinelle`) : moteur anti-fuite, gates 1-2-3, dimensionnement, gardien et kill switch, paliers. **54 tests passent.**
-- ⏭️ Phase 2 : pipeline d'agents (LangGraph + Claude) et stratégie Freqtrade en dry-run.
-- ⏭️ Phase 3 : application Android Flutter.
+- ✅ **Phase 2 livrée** : équipe d'agents Claude (Hypothesis, Critic, Rédacteur), orchestrateur séquentiel, journal immuable des essais, export Freqtrade DRY-RUN + Docker. **85 tests passent.**
+  - Choix de sécurité : l'IA ne produit **jamais de code**, uniquement une stratégie déclarative validée → pas d'exécution de code généré, look-ahead impossible par construction.
+  - Orchestrateur écrit en Python simple plutôt qu'avec LangGraph : même logique séquentielle et reprise par le journal, une dépendance de moins. LangGraph reste possible plus tard.
+  - Seuils de risque exprimés au niveau du **compte** (une position = 20 % max du capital).
+- ⏭️ Phase 3 : API backend + application Android Flutter.
+- ⏭️ Phase 4 : déploiement VPS et ≥ 4 semaines de dry-run.
