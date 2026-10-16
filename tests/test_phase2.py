@@ -270,3 +270,36 @@ def test_freqtrade_config_has_no_secrets_and_is_dry_run():
     assert cfg["dry_run"] and cfg["trading_mode"] == "spot"
     assert cfg["stake_amount"] == 20.0  # 20 % du portefeuille simulé
     assert cfg["api_server"]["password"] == "" and cfg["telegram"]["token"] == ""
+
+
+def _load_generated(tmp_path, spec, params):
+    path = tmp_path / "gen_guard.py"
+    path.write_text(render_strategy(spec, params))
+    module_spec = importlib.util.spec_from_file_location("gen_guard", path)
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    return getattr(module, class_name(spec))()
+
+
+def test_generated_bot_fails_closed_without_guard(tmp_path, fake_freqtrade, monkeypatch):
+    monkeypatch.delenv("SENTINELLE_GUARD_URL", raising=False)
+    strategy = _load_generated(tmp_path, StrategySpec(**BASE), {"w": 2})
+    args = dict(pair="BTC/USDT", order_type="limit", amount=0.001, rate=60000.0, time_in_force="GTC",
+                current_time=None, entry_tag=None, side="long")
+    assert strategy.confirm_trade_entry(**args) is False
+    # Gardien configuré mais injoignable : toujours NON.
+    monkeypatch.setenv("SENTINELLE_GUARD_URL", "http://127.0.0.1:9/internal/guard/check")
+    monkeypatch.setenv("SENTINELLE_INTERNAL_TOKEN", "t" * 40)
+    assert strategy.confirm_trade_entry(**args) is False
+    assert strategy.confirm_trade_entry(**{**args, "side": "short"}) is False
+
+
+def test_generated_bot_sizes_by_risk(tmp_path, fake_freqtrade):
+    strategy = _load_generated(tmp_path, StrategySpec(**BASE), {"w": 2})  # stop 10 %
+    strategy.wallets = SimpleNamespace(get_total_stake_amount=lambda: 1000.0)
+    stake = strategy.custom_stake_amount("BTC/USDT", None, 100.0, 200.0, 5.0, 1000.0, 1.0, None, "long")
+    # 1000 × 0,5 % / (10 % + 0,2 % de slippage) ≈ 49 USDT
+    assert stake == pytest.approx(1000 * 0.005 / 0.102, rel=1e-6)
+    # Petit capital : la taille tombe sous le minimum de l'exchange → 0, pas de trade.
+    strategy.wallets = SimpleNamespace(get_total_stake_amount=lambda: 33.0)
+    assert strategy.custom_stake_amount("BTC/USDT", None, 100.0, 6.6, 5.0, 33.0, 1.0, None, "long") == 0.0

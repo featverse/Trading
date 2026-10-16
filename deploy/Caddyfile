@@ -1,0 +1,13 @@
+# HTTPS automatique (Let's Encrypt). SENTINELLE_DOMAIN : ex. monbot.duckdns.org
+{$SENTINELLE_DOMAIN} {
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+	# L'endpoint interne du bot n'est JAMAIS exposé à Internet.
+	@internal path /internal/*
+	respond @internal 404
+	reverse_proxy api:8000
+}
