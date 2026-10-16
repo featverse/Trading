@@ -36,11 +36,25 @@ Décisions possibles : `REJECTED` ou `PAPER_TRADING_ONLY`. **Le pipeline ne peut
 ANTHROPIC_API_KEY=... .venv/bin/python scripts/run_research.py --ideas 3
 ```
 
+## Phase 3 : le serveur et l'application Android
+
+| Élément | Rôle |
+|---|---|
+| `sentinelle/api/app.py` | API sécurisée : tableau de bord, stratégies, risque, apports, arrêt d'urgence |
+| `sentinelle/api/supervisor.py` | Superviseur : relie bot ↔ gardien ↔ paliers, détecte apports et retraits automatiquement |
+| `sentinelle/api/security.py` | Mot de passe scrypt, jetons signés courts + rotation, verrouillage après 5 échecs |
+| Bot généré | Demande l'accord du gardien avant **chaque** achat (refus si pas de réponse) ; taille selon la règle du 1 % |
+| `mobile/sentinelle_app/` | Application Android (Flutter) : empreinte, Keystore, HTTPS obligatoire |
+| `deploy/` | Docker Compose : bot + serveur + HTTPS automatique (Caddy) |
+| `.github/workflows/ci.yml` | Tests à chaque envoi + **APK Android téléchargeable** |
+
+Installation pas à pas : [`docs/INSTALLATION.md`](docs/INSTALLATION.md).
+
 ## Lancer
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
-.venv/bin/python -m pytest -q                                # 85 tests
+.venv/bin/python -m pytest -q                                # 105 tests
 .venv/bin/python scripts/validate_strategy.py                # pipeline complet sur BTCUSDT daily
 .venv/bin/python scripts/validate_strategy.py --synthetic    # hors ligne
 ```

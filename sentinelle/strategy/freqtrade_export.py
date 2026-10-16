@@ -54,6 +54,10 @@ Spot uniquement, pas de levier, pas de vente à découvert. DRY-RUN tant que l'o
 n'a pas validé le passage en réel dans l'application.
 Illustratif, pas un conseil financier. Aucune garantie de performance.
 """
+import json
+import os
+import urllib.request
+
 from pandas import DataFrame
 from freqtrade.strategy import IStrategy
 {indicator_src}
@@ -96,6 +100,40 @@ class {class_name(spec)}(IStrategy):
                 "max_allowed_drawdown": {limits.max_drawdown},
             }},
         ]
+
+    # ── Taille de position : Capital × risque / distance au stop (règle du 1 %) ──
+    def custom_stake_amount(self, pair, current_time, current_rate, proposed_stake, min_stake,
+                            max_stake, leverage, entry_tag, side, **kwargs) -> float:
+        total = self.wallets.get_total_stake_amount()
+        stop_distance = abs(self.stoploss) + {limits.stop_slippage_bps / 1e4:.6f}
+        stake = total * {limits.risk_per_trade} / stop_distance
+        stake = min(stake, total * {limits.max_position_pct}, max_stake)
+        if min_stake is not None and stake < min_stake:
+            return 0.0  # sous le minimum de l'exchange : on ne trade pas (capital trop petit)
+        return stake
+
+    # ── Le gardien SENTINELLE a le dernier mot. Sans réponse : NON. ──
+    def confirm_trade_entry(self, pair, order_type, amount, rate, time_in_force, current_time,
+                            entry_tag, side, **kwargs) -> bool:
+        if side != "long":
+            return False
+        url = os.environ.get("SENTINELLE_GUARD_URL", "")
+        token = os.environ.get("SENTINELLE_INTERNAL_TOKEN", "")
+        if not url or not token:
+            return False
+        body = json.dumps({{
+            "pair": pair,
+            "rate": float(rate),
+            "stop_rate": float(rate) * (1 + self.stoploss),
+            "notional": float(amount) * float(rate),
+        }}).encode()
+        req = urllib.request.Request(url, data=body, method="POST",
+                                     headers={{"Content-Type": "application/json", "X-Internal-Token": token}})
+        try:
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                return bool(json.loads(resp.read()).get("approved", False))
+        except Exception:
+            return False
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         return dataframe

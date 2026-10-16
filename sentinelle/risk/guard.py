@@ -126,6 +126,21 @@ class RiskGuard:
             self._log(now, "PAUSE", f"Perte du jour {day_change:.2%} : plus d'entrées aujourd'hui.")
         return self.state.status
 
+    def adjust_for_cashflow(self, amount: float, now: datetime) -> None:
+        """Apport (>0) ou mise à l'abri / retrait (<0) : ce n'est ni un gain ni une perte.
+
+        On décale les références (plus haut, début de journée) du même montant, sinon
+        un retrait ressemblerait à un drawdown et un apport masquerait une vraie perte.
+        """
+        now = _utc(now)
+        new_last = self.state.last_equity + amount
+        if new_last <= 0:
+            raise ValueError("Mouvement de fonds supérieur au capital.")
+        self.state.last_equity = new_last
+        self.state.equity_peak = max(self.state.equity_peak + amount, 1e-9)
+        self.state.day_start_equity = max(self.state.day_start_equity + amount, 1e-9)
+        self._log(now, "CASHFLOW", f"Mouvement de fonds {amount:+.2f} (références ajustées).")
+
     def record_trade_result(self, pnl: float, now: datetime) -> None:
         now = _utc(now)
         self._refresh(now)

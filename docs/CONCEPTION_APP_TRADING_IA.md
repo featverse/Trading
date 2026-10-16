@@ -249,5 +249,9 @@ Calendrier : construction + paper trading ≈ 3 mois. Pendant ce temps, tes appo
   - Choix de sécurité : l'IA ne produit **jamais de code**, uniquement une stratégie déclarative validée → pas d'exécution de code généré, look-ahead impossible par construction.
   - Orchestrateur écrit en Python simple plutôt qu'avec LangGraph : même logique séquentielle et reprise par le journal, une dépendance de moins. LangGraph reste possible plus tard.
   - Seuils de risque exprimés au niveau du **compte** (une position = 20 % max du capital).
-- ⏭️ Phase 3 : API backend + application Android Flutter.
+- ✅ **Phase 3 livrée** : serveur API + superviseur + application Android (Flutter). 105 tests serveur, 9 tests application.
+  - Le bot demande l'accord du gardien avant chaque achat ; sans réponse, c'est NON.
+  - Apports et retraits détectés automatiquement (solde − profit) : jamais confondus avec des pertes.
+  - APK compilé par GitHub Actions (SDK Android indisponible dans l'environnement de développement).
+  - Notifications push : prévues plus tard (Firebase) ; en attendant, alertes Telegram du bot et actualisation dans l'application.
 - ⏭️ Phase 4 : déploiement VPS et ≥ 4 semaines de dry-run.
