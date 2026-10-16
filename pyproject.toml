@@ -1,0 +1,12 @@
+[project]
+name = "sentinelle"
+version = "0.1.0"
+description = "IA de trading crypto spot — moteur de validation et gardien des risques"
+requires-python = ">=3.11"
+dependencies = ["pandas>=2.2", "numpy>=1.26", "scipy>=1.11"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
